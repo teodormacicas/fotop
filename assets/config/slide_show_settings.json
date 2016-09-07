@@ -1,0 +1,9 @@
+{"SlideShow":
+	{ 
+	  "directory": "/data/samplefoto",
+	  "pattern": "**/*.{jpg,JPG,gif,GIF,png,PNG}",
+	  "maxImageSize": [800, 600],
+	  "quality": 100,
+	  "subDirectoryExceptions": ["blah"]
+	}
+}
