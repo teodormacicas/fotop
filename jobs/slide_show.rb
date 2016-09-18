@@ -1,7 +1,10 @@
 require 'net/http'
 require 'rmagick'
+require 'fileutils'
+require 'date'
 
 class SlideShow
+  DATA_EXTENSION = ".txt"
   SETTINGS_FILE = "assets/config/slide_show_settings.json"
   CURRENT_DIR = Dir.pwd
   DEBUG = 1
@@ -18,10 +21,15 @@ class SlideShow
     return false
   end
 
-  def get_settings
-     str = IO.read(SETTINGS_FILE)
+  def get_json(file)
+     return if not File.file?(file)
+     str = IO.read(file)
      return [] if not str or str.empty? or not valid_json?(str)
      JSON.parse(str)
+  end
+
+  def get_settings
+     return get_json(SETTINGS_FILE)
   end
 
   def get_dir_file_list(directory, pattern, exceptionDirs = [])
@@ -29,75 +37,82 @@ class SlideShow
     Dir[directory+'/'+pattern].delete_if { |x| exceptionDirs.any? { |d| x =~ /#{d}/ } }
   end
 
+  # NOT USED
   def resize_images(files, widget, directory, maxImageSize, quality = 50, fileCount = 100)
     return if not files or files.length == 0
     files[0..fileCount].each do |f|
-      newFile = f.sub directory, CURRENT_DIR+"/assets/images/slide_show/#{widget}"
+      newFile = f.sub directory, CURRENT_DIR + "/assets/images/slide_show/#{widget}"
       next if File.exists?(newFile)
       FileUtils.mkdir_p File.dirname(newFile)
       img = Magick::Image.read(f).first
-      puts DateTime.now.to_s+" resizing image #{f}"
-      newImg = img.change_geometry(maxImageSize[0].to_s+'x'+maxImageSize[1].to_s) { |cols, rows, i|
+      newImgSize = maxImageSize[0].to_s + 'x' + maxImageSize[1].to_s
+      puts DateTime.now.to_s+" RESIZING image #{f} to #{newImgSize}"
+      newImg = img.change_geometry(newImgSize) { |cols, rows, i|
         newImg = i.resize(cols, rows)
         newImg.write(newFile){ self.quality = quality }
       }
     end
   end
 
-  def get_file_list(widget, settings)
-    widgetFileDir = CURRENT_DIR+"/assets/images/slide_show/#{widget}"
-    files = (get_dir_file_list(widgetFileDir, settings['pattern']).shuffle)[0..30]
+  # Return a list of files from the speficied location; default: shuffle of 30 items
+  def get_file_list(settings)
+    files = (get_dir_file_list(settings['directory'], settings['pattern'], settings['subDirectoryExceptions']).shuffle)[0..30]
     return files if files and files.length > 0
-    # no files yet - get new list from source location and resize it
-    # take just 15 files not to freeze everything
-    resize_images(
-      get_dir_file_list(settings['directory'], settings['pattern'], settings['subDirectoryExceptions']).shuffle,
-      widget,
-      settings['directory'],
-      settings['maxImageSize'],
-      settings['quality'],
-      15)
-    # return 10 files not to make everything last too long
-    (get_dir_file_list(widgetFileDir, settings['pattern']).shuffle)[0..10]
   end
   
-  
+  # Return the URL to the picture (used by the Sinatra webframework)
   def make_web_friendly(widget, directory, file)
     file.sub directory, "/assets/slide_show/#{widget}" if file
   end
-end
-
-
-# TODO: do we really need this every minute?!
-@SS = SlideShow.new() 
-SCHEDULER.cron '*/1 * * * *' do |job|
-  settings = @SS.get_settings
-  settings.each do |widget, project|
-    puts DateTime.now.to_s+" Resizing images for #{widget}, #{project.to_s}"
-    @SS.resize_images(
-      @SS.get_dir_file_list(project['directory'], project['pattern'], project['subDirectoryExceptions']).shuffle,
-      widget,
-      project['directory'],
-      project['maxImageSize'],
-      project['quality'])
+  
+  # Return the name of the file containing information about the picture
+  def get_details_filename(picture_filename)
+    picture_filename.sub /\.[^.]+\z/, DATA_EXTENSION
   end
 end
 
-# TODO: fix this, crashes if no pics! 
+@SS = SlideShow.new() 
+
+# # TODO: do we really need this every minute?!
+# @SS = SlideShow.new() 
+# SCHEDULER.cron '*/1 * * * *' do |job|
+  # settings = @SS.get_settings
+  # settings.each do |widget, project|
+    # puts DateTime.now.to_s+" Resizing images for #{widget}, #{project.to_s}"
+    # # resizes shuffled images from the source directory (but max 100, set by default) 
+    # @SS.resize_images(
+      # @SS.get_dir_file_list(project['directory'], project['pattern'], project['subDirectoryExceptions']).shuffle,
+      # widget,
+      # project['directory'],
+      # project['maxImageSize'],
+      # project['quality'])
+  # end
+# end
+
 @files = nil
 SCHEDULER.every '5s', :first_in => 0 do |job|
   settings = @SS.get_settings
-  settings.each do |widget, project|
-    @files = { widget => @SS.get_file_list(widget, project) } #if not @files or not @files[widget] or @files[widget].length == 0
+  settings.each do |widget, project|    
+    # get 30 random files
+    @files = { widget => @SS.get_file_list(project) } #if not @files or not @files[widget] or @files[widget].length == 0
+    # take a random one
     file = @files[widget][rand(@files[widget].length)]
-    
-    puts DateTime.now.to_s+" Working with #{widget}, #{project.to_s}, #{file}" if @SS.debug > 0
-    
+    puts DateTime.now.to_s+" Display #{file}" if @SS.debug > 0
     img = Magick::Image::read(file).first
+    
+    image_details = @SS.get_json(@SS.get_details_filename(file))
+    created = image_details.fetch('created', nil)
+    date = ''
+    if created
+      date = Date::strptime(created, "%Y-%m-%d")
+    end
     send_event(widget, {
        image: @SS.make_web_friendly(widget, Dir.pwd+"/assets/images/slide_show/#{widget}", file),
        image_width: img.columns,
-       image_height: img.rows
+       image_height: img.rows,
+       image_name: image_details['name'],
+       image_place: image_details['place'],
+       image_created: date
     })
   end
 end

@@ -1,8 +1,8 @@
 {"SlideShow":
 	{ 
-	  "directory": "/data/samplefoto",
+	  "directory": "/home/pi/foto-poc-project/assets/images/slide_show/SlideShow",
 	  "pattern": "**/*.{jpg,JPG,gif,GIF,png,PNG}",
-	  "maxImageSize": [800, 600],
+	  "maxImageSize": [800, 480],
 	  "quality": 100,
 	  "subDirectoryExceptions": ["blah"]
 	}

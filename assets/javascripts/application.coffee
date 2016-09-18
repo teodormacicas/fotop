@@ -9,13 +9,17 @@ console.log("Yeah! The dashboard has started!")
 
 Dashing.on 'ready', ->
   Dashing.widget_margins ||= [5, 5]
-  Dashing.widget_base_dimensions ||= [300, 360]
-  Dashing.numColumns ||= 4
-
-  contentWidth = (Dashing.widget_base_dimensions[0] + Dashing.widget_margins[0] * 2) * Dashing.numColumns
+  # 800x460 is the resolution of raspberry touch screen 7" (note: take into account the margins as well)
+  Dashing.screen_dimensions ||= [800, 460]
+  Dashing.widget_base_dimensions ||= [90, 440]
+  Dashing.numColumns ||= 1
+  contentWidth = Dashing.screen_dimensions[0]
+  contentHeight = Dashing.screen_dimensions[1]
 
   Batman.setImmediate ->
     $('.gridster').width(contentWidth)
+    $('.gridster').height(contentHeight)
+    
     $('.gridster ul:first').gridster
       widget_margins: Dashing.widget_margins
       widget_base_dimensions: Dashing.widget_base_dimensions

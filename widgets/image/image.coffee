@@ -8,9 +8,25 @@ class Dashing.Image extends Dashing.Widget
     # Handle incoming data
     # You can access the html node of this widget with `@node`
     # Example: $(@node).fadeOut().fadeIn() will make the node flash each time data comes in.
-    @handleSize()
-
-
+    # @handleSize2()
+    @displayFotoDetails()
+    
+  displayFotoDetails: ->
+    p = $('#foto_details')
+    t = ''
+    if @get('image_name')
+    	t = @get('image_name')
+    if @get('image_place')
+    	if @get('image_name')
+    		t = @get('image_name') + ", " + @get('image_place')
+    	else
+    		t = @get('image_place')
+    if @get('image_created')
+    	if t != ''
+    		t += ", "
+    	t += @get('image_created')
+    p.text(t)
+    
   handleSize: ->
     if !$(@node).data('width') && !$(@node).data('height') && @get('image_width') && @get('image_height')
       $(@node).fadeOut()

@@ -1,1 +1,5 @@
-<img data-bind-src="image" data-bind-width="width" data-bind-height="height"/>
+<div style="overflow: hidden; height: inherit; width: inherit; ">
+	<img data-bind-src="image" style="max-width: 100%; max-height: 95%; overflow: hidden"/>
+	<p id="foto_details" data-bind-value="image-details" style="font-size: 16px; z-index: 1000; font-weight: 600" ></p>
+</div>
+
