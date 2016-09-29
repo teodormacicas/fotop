@@ -7,15 +7,27 @@ require 'open-uri'
 Koala.config.api_version = "v2.7"
 
 class PollFacebookPhotos
+  WIDGET_PRINT_NAME = "POLL FACEBOOK"
   SETTINGS_FILE = "assets/config/poll_facebook.json"
   FOTO_EXTENSION = ".jpg"
   DATA_EXTENSION = ".txt"
+  DEBUG = 1
 
-  def valid_json? (json)
+  def debug
+    DEBUG
+  end
+
+  def log(msg)
+    return if not DEBUG or not msg
+    puts DateTime.now.to_s + " " + PollFacebookPhotos::WIDGET_PRINT_NAME + " " + msg 
+  end
+
+
+  def valid_json?(json)
     JSON.parse(json)
     return true
   rescue JSON::ParserError
-    puts DateTime.now.to_s + " JSON parse error #{json}"
+    log("JSON parse error #{json}")
     return false
   end
 
@@ -33,12 +45,12 @@ class PollFacebookPhotos
         raise "Token invalid." 
       end
     rescue Exception => exc
-      puts DateTime.now.to_s + " Debugging token failed, probably it is invalid." 
-      puts DateTime.now.to_s + " " + exc.message
+      log("Debugging token failed, probably it is invalid.") 
+      log(exc.message)
       #TODO: send an email here to inform the token is not valid anymore!
       return false
     end
-    puts DateTime.now.to_s + " Token #{token} is valid." 
+    log("Token #{token} is valid.") 
     return true
   end
   
@@ -61,23 +73,33 @@ class PollFacebookPhotos
   end
   
   def create_nested_directory(directory)
-    puts DateTime.now.to_s + " Create #{directory} directory."
+    log("Create #{directory} directory.")
     FileUtils::mkdir_p directory
   end
   
   def download_foto(foto_id, owner, destination_directory, type)
-    puts DateTime.now.to_s + " Trying to download foto #{foto_id} of #{owner}"
-    create_nested_directory(destination_directory) if not directory_exists(destination_directory)
-    puts DateTime.now.to_s + " First check whether this has been already downloaded."
     foto_filename, data_filename = construct_foto_filenames(foto_id, owner, destination_directory, type)
-     
+    # exit if the image exists, but get details every time as they can get updated
+    return if file_exists(foto_filename) and not empty_file(foto_filename)
+    # do this trick to avoid filenames with same ctime (while bootstrapping)
+    sleep 1
+    
+    log("Trying to download foto #{foto_id} of #{owner}")
     object = @graph.get_object(foto_id, args={'fields' => 'images,name,place,tags,created_time'})
-    image_url = object['images'][1]['source']
-    puts DateTime.now.to_s + " Save details for image #{image_url}"
-    place = object.has_key?('place') ? object['place'].fetch('name', '') : ''
+    image_url = object['images'][1]['source'] 
+    log("Download new image from #{image_url}.")
+    begin
+      open(foto_filename, 'wb') do |file|
+        file << open(image_url).read
+      end
+    rescue Exception => exc 
+      log("Downloading new image from #{image_url} failed." + " " + exc.message) 
+    end
+    
+    log("Save details for image #{image_url}")
     details = {
       "name" => object.fetch('name', ''),
-      "place" => place,
+      "place" => object.fetch('place', {}).fetch('name', ''),
       "created" => object.fetch('created_time', '')
     }
     begin
@@ -85,21 +107,8 @@ class PollFacebookPhotos
         file << details.to_json
       end
     rescue Exception => exc 
-      puts DateTime.now.to_s + " Writting details for image #{image_url} failed." + " " + exc.message
+      log("Writting details for image #{image_url} failed." + " " + exc.message)
     end
-    
-    # exit if the image exists, but get details every time as they can get updated
-    return if file_exists(foto_filename) and not empty_file(foto_filename)
-    
-    puts DateTime.now.to_s + " Download image from #{image_url}."
-    begin
-      open(foto_filename, 'wb') do |file|
-        file << open(image_url).read
-      end
-    rescue Exception => exc 
-      puts DateTime.now.to_s + " Downloading image from #{image_url} failed." + " " + exc.message 
-    end
-    
   end
   
   def poll_fotos(config)
@@ -108,35 +117,28 @@ class PollFacebookPhotos
     
     profile = @graph.get_object("me")
     foto_owner = profile['name'].delete(' ')
-    puts DateTime.now.to_s + " Poll fotos owned by #{profile['name']} "
+    log("Poll fotos owned by #{profile['name']}")
     
     config['imageSetup'].each do |setup|
-      photos = @graph.get_connections("me", "photos", args={'type' => setup['type']})
-      next if not photos
-      count = 0
-      stop_polling = false
-      while true do
-        photos.each do |photo|
-          if count == setup['count']
-            stop_polling = true
-            break
-          end
-          count += 1
-          download_foto(photo['id'], foto_owner, config['directory'], setup['type'])
-        end  
-        break if stop_polling
-        photos = photos.next_page()
-      end
+      photos = @graph.get_connections("me", "photos", args={'type' => setup['type'], 'limit' => setup['count']})
+      next if not photos or photos.length == 0
+      # sord asc based on created time => the oldest pic = the oldest file on disk (easy to prune)
+      photos = photos.sort_by { |hsh| hsh[:created_time] }.reverse
+      photos.each do |photo|
+        create_nested_directory(config['directory']) if not directory_exists(config['directory'])
+        download_foto(photo['id'], foto_owner, config['directory'], setup['type'])
+      end  
     end
-    
   end
+  
 end
 
 
+@PFP = PollFacebookPhotos.new()
+all_settings = @PFP.get_settings
+
 SCHEDULER.every '1m', :first_in => 0 do |job|
-  @PFP = PollFacebookPhotos.new()
-  all_settings = @PFP.get_settings
   all_settings.each do |settings|
-      @PFP.poll_fotos(settings)     
-    end
+    @PFP.poll_fotos(settings)     
+  end
 end

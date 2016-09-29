@@ -1,9 +1,9 @@
 require 'net/http'
-require 'rmagick'
 require 'fileutils'
 require 'date'
 
 class SlideShow
+  WIDGET_PRINT_NAME = "SLIDESHOW"
   DATA_EXTENSION = ".txt"
   SETTINGS_FILE = "assets/config/slide_show_settings.json"
   CURRENT_DIR = Dir.pwd
@@ -11,6 +11,11 @@ class SlideShow
 
   def debug
     DEBUG
+  end
+  
+  def log(msg)
+    return if not DEBUG or not msg
+    puts DateTime.now.to_s + " " + SlideShow::WIDGET_PRINT_NAME + " " + msg 
   end
 
   # function to validate json
@@ -89,27 +94,32 @@ end
   # end
 # end
 
-@files = nil
 SCHEDULER.every '5s', :first_in => 0 do |job|
+  @files = nil
   settings = @SS.get_settings
-  settings.each do |widget, project|    
+  settings.each do |widget, project|
     # get 30 random files
-    @files = { widget => @SS.get_file_list(project) } #if not @files or not @files[widget] or @files[widget].length == 0
+    @files = { widget => @SS.get_file_list(project) }
+    next if not @files or @files.length == 0 
     # take a random one
     file = @files[widget][rand(@files[widget].length)]
-    puts DateTime.now.to_s+" Display #{file}" if @SS.debug > 0
-    img = Magick::Image::read(file).first
+    @SS.log("Display #{file}")
     
+    # suspect memory leak here!!!
+    #img = Magick::Image::read(file).first
+    
+    # get image details (from the .txt file if fetched from facebook)
     image_details = @SS.get_json(@SS.get_details_filename(file))
     created = image_details.fetch('created', nil)
     date = ''
     if created
       date = Date::strptime(created, "%Y-%m-%d")
     end
+    
     send_event(widget, {
        image: @SS.make_web_friendly(widget, Dir.pwd+"/assets/images/slide_show/#{widget}", file),
-       image_width: img.columns,
-       image_height: img.rows,
+       # image_width: img.columns,
+       # image_height: img.rows,
        image_name: image_details['name'],
        image_place: image_details['place'],
        image_created: date
