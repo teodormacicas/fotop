@@ -9,3 +9,6 @@ gem 'dashing'
 #gem 'twitter', '>= 5.9.0'
 
 gem "koala", "~> 2.2"
+
+gem "json"
+gem "flickraw"

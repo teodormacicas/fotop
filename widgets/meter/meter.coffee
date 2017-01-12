@@ -1,6 +1,6 @@
 class Dashing.Meter extends Dashing.Widget
 
-  @accessor 'value', Dashing.AnimatedValue
+  #@accessor 'value', Dashing.AnimatedValue
 
   constructor: ->
     super

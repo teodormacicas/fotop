@@ -1,0 +1,12 @@
+[
+  {
+    "api_key": "",
+    "shared_secret": "",
+    "oauth_token": "",
+    "oauth_token_secret": "",
+    "name": "oto-frame",
+    "directory": "assets/images/slide_show/SlideShow/flickr/",
+    //"directory": "/workspace/rasppi/fotop/flickr/teodor",
+    "imageCount": 2
+  }
+]

@@ -20,11 +20,12 @@ $moreinfo-color:    rgba(255, 255, 255, 0.7);
 
   .value {
     color: $value-color;
+    font-size: 24px;
   }
 
   .change-rate {
     font-weight: 500;
-    font-size: 30px;
+    font-size: 16px;
     color: $value-color;
   }
 
@@ -34,6 +35,7 @@ $moreinfo-color:    rgba(255, 255, 255, 0.7);
 
   .updated-at {
     color: rgba(0, 0, 0, 0.3);
+    font-size: 14px;
   }
 
 }

@@ -1,30 +1,32 @@
 [
-	{
-		"userToken": "",
-		"directory": "/home/pi/foto-poc-project/assets/images/slide_show/SlideShow/facebook/teodor",
-		"imageSetup": [
-			{
-				"type": "uploaded",
-				"count": 5
-			},
-			{
-				"type": "tagged",
-				"count": 1
-			}
-		]
-	}, 
-	{
-		"userToken": "",
-		"directory": "/home/pi/foto-poc-project/assets/images/slide_show/SlideShow/facebook/raluca",
-		"imageSetup": [
-			{
-				"type": "uploaded",
-				"count": 10
-			},
-			{
-				"type": "tagged",
-				"count": 5
-			}
-		]
-	}
+  {
+    "name": "a",
+    "userToken": "",
+    "directory": "assets/images/slide_show/SlideShow/facebook",
+    "imageSetup": [
+      {
+        "type": "uploaded",
+        "count": 2
+      },
+      {
+        "type": "tagged",
+        "count": 0
+      }
+    ]
+  },
+  {
+    "name": "b",
+    "userToken": "",
+    "directory": "assets/images/slide_show/SlideShow/facebook",
+    "imageSetup": [
+      {
+        "type": "uploaded",
+        "count": 10
+      },
+      {
+        "type": "tagged",
+        "count": 5
+      }
+    ]
+  }
 ]

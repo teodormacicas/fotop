@@ -1,5 +1,8 @@
-<div style="overflow: hidden; height: inherit; width: inherit; ">
-	<img data-bind-src="image" style="max-width: 100%; max-height: 95%; overflow: hidden"/>
-	<p id="foto_details" data-bind-value="image-details" style="font-size: 16px; z-index: 1000; font-weight: 600" ></p>
+<div style="overflow: hidden; height: inherit; width: inherit; position: relative">
+	<img data-bind-src="image" style="max-width: 100%; max-height: 95%; overflow: hidden;
+	position: absolute; top: 0; bottom: 5%; left: 0; right: 0; margin: auto;"/>
+	<p id="foto_details" data-bind-value="image-details"
+	   style="font-size: 16px; z-index: 1000; font-weight: 600;
+		position: absolute; top: 95%; width: inherit;" ></p>
 </div>
 

@@ -22,7 +22,6 @@ class PollFacebookPhotos
     puts DateTime.now.to_s + " " + PollFacebookPhotos::WIDGET_PRINT_NAME + " " + msg 
   end
 
-
   def valid_json?(json)
     JSON.parse(json)
     return true
@@ -59,19 +58,11 @@ class PollFacebookPhotos
     data_filename = File.join(destination_directory, type + "_" + foto_id + "_" + owner + DATA_EXTENSION)
     return foto_filename, data_filename
   end
-  
-  def file_exists(filename)
-    return File.file?(filename)
-  end
-  
+
   def empty_file(filename)
     return true if File.size(filename) == 0
   end
-  
-  def directory_exists(directory)
-    return File.directory?(directory)
-  end
-  
+
   def create_nested_directory(directory)
     log("Create #{directory} directory.")
     FileUtils::mkdir_p directory
@@ -80,7 +71,7 @@ class PollFacebookPhotos
   def download_foto(foto_id, owner, destination_directory, type)
     foto_filename, data_filename = construct_foto_filenames(foto_id, owner, destination_directory, type)
     # exit if the image exists, but get details every time as they can get updated
-    return if file_exists(foto_filename) and not empty_file(foto_filename)
+    return if File.file?(foto_filename) and not empty_file(foto_filename)
     # do this trick to avoid filenames with same ctime (while bootstrapping)
     sleep 1
     
@@ -125,20 +116,18 @@ class PollFacebookPhotos
       # sord asc based on created time => the oldest pic = the oldest file on disk (easy to prune)
       photos = photos.sort_by { |hsh| hsh[:created_time] }.reverse
       photos.each do |photo|
-        create_nested_directory(config['directory']) if not directory_exists(config['directory'])
+        create_nested_directory(config['directory']) if not File.directory?(config['directory'])
         download_foto(photo['id'], foto_owner, config['directory'], setup['type'])
       end  
     end
   end
-  
 end
 
-
-@PFP = PollFacebookPhotos.new()
-all_settings = @PFP.get_settings
+@PFb = PollFacebookPhotos.new()
+all_settings = @PFb.get_settings
 
 SCHEDULER.every '1m', :first_in => 0 do |job|
   all_settings.each do |settings|
-    @PFP.poll_fotos(settings)     
+    @PFb.poll_fotos(settings)
   end
 end
